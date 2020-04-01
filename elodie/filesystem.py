@@ -101,7 +101,7 @@ class FileSystem(object):
         compiled_regex_list = [re.compile(regex) for regex in exclude_regex_list]
         for dirname, dirnames, filenames in os.walk(path):
             for filename in filenames:
-                # If file extension is in `extensions` 
+                # If file extension is in `extensions`
                 # And if file path is not in exclude regexes
                 # Then append to the list
                 filename_path = os.path.join(dirname, filename)
@@ -179,11 +179,11 @@ class FileSystem(object):
                     if metadata[part]:
                         this_value = os.path.splitext(metadata['original_name'])[0]
                     else:
-                        # We didn't always store original_name so this is 
+                        # We didn't always store original_name so this is
                         #  for backwards compatability.
-                        # We want to remove the hardcoded date prefix we used 
+                        # We want to remove the hardcoded date prefix we used
                         #  to add to the name.
-                        # This helps when re-running the program on file 
+                        # This helps when re-running the program on file
                         #  which were already processed.
                         this_value = re.sub(
                             '^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-',
@@ -543,7 +543,7 @@ class FileSystem(object):
         directory_name = self.get_folder_path(metadata)
         dest_directory = os.path.join(destination, directory_name)
         file_name = self.get_file_name(metadata)
-        dest_path = os.path.join(dest_directory, file_name)        
+        dest_path = os.path.join(dest_directory, file_name)
 
         media.set_original_name()
 
@@ -585,7 +585,7 @@ class FileSystem(object):
             else:
                 compatability._copyfile(_file, dest_path)
 
-            # Set the utime based on what the original file contained 
+            # Set the utime based on what the original file contained
             #  before we made any changes.
             # Then set the utime on the destination file based on metadata.
             os.utime(_file, (stat_info_original.st_atime, stat_info_original.st_mtime))

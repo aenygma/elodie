@@ -19,6 +19,9 @@ if (
 #: File in which to store details about media Elodie has seen.
 hash_db = '{}/hash.json'.format(application_directory)
 
+#: Database in which to store details about media Elodie has seen.
+sql_hash_db = '{}/hash.db'.format(application_directory)
+
 #: File in which to store geolocation details about media Elodie has seen.
 location_db = '{}/location.json'.format(application_directory)
 
