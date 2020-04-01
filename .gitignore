@@ -9,4 +9,7 @@ build/**
 **/*.dng
 **/*.nef
 **/*.rw2
-env/**
+venv/**
+*.sw?
+cscope.files
+cscope.out
