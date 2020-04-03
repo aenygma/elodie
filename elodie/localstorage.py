@@ -8,23 +8,30 @@ import hashlib
 import json
 import os
 import sys
+import peewee
 
 from math import radians, cos, sqrt
 from shutil import copyfile
-from time import strftime
+from time import strftime, time
 
 from elodie import constants
 
 
-class Db(object):
+class Base_DB(object):
 
     """A class for interacting with the JSON files created by Elodie."""
 
     def __init__(self):
+
         # verify that the application directory (~/.elodie) exists,
         #   else create it
         if not os.path.exists(constants.application_directory):
             os.makedirs(constants.application_directory)
+
+        self._setup_hash_db()
+        self._setup_loc_db()
+
+    def _setup_hash_db(self):
 
         # If the hash db doesn't exist we create it.
         # Otherwise we only open for reading
@@ -41,6 +48,8 @@ class Db(object):
                 self.hash_db = json.load(f)
             except ValueError:
                 pass
+
+    def _setup_loc_db(self):
 
         # If the location db doesn't exist we create it.
         # Otherwise we only open for reading
@@ -203,3 +212,102 @@ class Db(object):
         """Write the location db to disk."""
         with open(constants.location_db, 'w') as f:
             json.dump(self.location_db, f)
+
+class E_file(peewee.Model):
+    """A class object for ORM to map to a file entry"""
+
+    path = peewee.CharField()
+    cksum = peewee.CharField(unique=True)
+    lastrun = peewee.DateField()
+
+    class Meta:
+        table_name = "files"
+
+class SqlDb(Base_DB):
+
+    """A class object for interacting with the created sqlite db."""
+
+    def __init__(self):
+
+        super().__init__()
+
+        #XXX HACK
+        # WE SHOULD NOT BE CHANGING THINGS LIKE THIS.
+        # USE SOME SORT OF GENERATOR, IF OOB SOLUTION DOESN"T EXIST
+        E_file._meta.database = self.hash_db
+
+        # Create tables
+        self.hash_db.create_tables([E_file])
+
+    def _setup_hash_db(self):
+        """ Setup the hash database """
+
+        self.hash_db = peewee.SqliteDatabase(constants.hash_db)
+
+    def _setup_loc_db(self):
+
+        # If the location db doesn't exist we create it.
+        # Otherwise we only open for reading
+        if not os.path.isfile(constants.location_db):
+            with open(constants.location_db, 'a'):
+                os.utime(constants.location_db, None)
+
+        self.location_db = []
+
+        # We know from above that this file exists so we open it
+        #   for reading only.
+        with open(constants.location_db, 'r') as f:
+            try:
+                self.location_db = json.load(f)
+            except ValueError:
+                pass
+
+    def add_hash(self, fhash, fpath, write=False):
+        """ Add a hash and path to the database """
+
+        try:
+            E_file.create(path=fpath, cksum=fhash, lastrun=time())
+        except Exception as e:
+            print(e)
+            return False
+        return True
+
+    def check_hash(self, key):
+        """Check whether a hash is present for the given key.
+
+        :param str key:
+        :returns: bool
+        """
+
+        results = E_file.select().where(E_file.path==key)
+        return len(results) > 0
+
+    def get_hash(self, key):
+        """Get the hash value for a given key.
+
+        :param str key:
+        :returns: str or None
+        """
+
+        results = E_file.select().where(E_file.path==key)
+        if len(results):
+            return results[0].path
+        return
+
+    def all(self):
+        """Generator to get all entries from self.hash_db
+
+        :returns tuple(string)
+        """
+
+        return [(i.cksum, i.path) for i in E_file.select()]
+
+    reset_hash_db = update_hash_db = lambda x: x
+
+def Db():
+    """Returns proper interface given the define hash_db filetype"""
+
+    if constants.hash_db.endswith("json"):
+        return Base_DB()
+    elif constants.hash_db.endswith("db"):
+        return SqlDb()
